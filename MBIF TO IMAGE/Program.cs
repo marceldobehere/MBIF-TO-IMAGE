@@ -21,6 +21,8 @@ namespace MBIF_TO_IMAGE
             }
 
             Console.WriteLine();
+            Console.WriteLine("If the image format is old then enter \"old\"");
+            bool old = Console.ReadLine().Equals("old");
 
             if (Directory.Exists(args[0]))
             {
@@ -28,11 +30,11 @@ namespace MBIF_TO_IMAGE
                 Directory.CreateDirectory(newFolder);
                 string[] files = Directory.GetFiles(args[0]);
                 foreach (string file in files)
-                    DeconvImage(file, newFolder);
+                    DeconvImage(file, newFolder, old);
             }
             else if (File.Exists(args[0]))
             {
-                DeconvImage(args[0], ".");
+                DeconvImage(args[0], ".", old);
             }
             else
             {
@@ -45,24 +47,40 @@ namespace MBIF_TO_IMAGE
             Console.ReadLine();
         }
 
-        static void DeconvImage(string path, string resPath)
+        static void DeconvImage(string path, string resPath, bool old)
         {
             byte[] bytes = File.ReadAllBytes(path);
 
 
             //    writer.Write(image.Width);          // 4 byte width
             //    writer.Write(image.Height);         // 4 byte height
-            //    writer.Write(xOff);                 // 4 byte x offset
-            //    writer.Write(yOff);                 // 4 byte y offset
+            //    writer.Write(xOff);                 // 4 byte x offset (if not old)
+            //    writer.Write(yOff);                 // 4 byte y offset (if not old)
             //    writer.Write(imageData.LongLength); // 8 byte image lenght
             //    writer.Write(imageData);            // image data
 
-            int width = BitConverter.ToInt32(bytes, 0);
-            int height = BitConverter.ToInt32(bytes, 4);
-            int xOff = BitConverter.ToInt32(bytes, 8);
-            int yOff = BitConverter.ToInt32(bytes, 12);
-            long dataLen = BitConverter.ToInt64(bytes, 16);
-            int offset = 4+4+4+4+8;
+            int offset = 0;
+            int width = BitConverter.ToInt32(bytes, offset);
+            offset += 4;
+            int height = BitConverter.ToInt32(bytes, offset);
+            offset += 4;
+            int xOff = 0, yOff = 0;
+            long dataLen = 0;
+            if (!old)
+            {
+                xOff = BitConverter.ToInt32(bytes, 8);
+                offset += 4;
+                yOff = BitConverter.ToInt32(bytes, 12);
+                offset += 4;
+                dataLen = BitConverter.ToInt64(bytes, offset);
+                offset += 8;
+            }
+            else
+            {
+                dataLen = BitConverter.ToInt32(bytes, offset);
+                offset += 4;
+            }
+            
 
             Console.WriteLine($"Image:");
             Console.WriteLine($" - Size:   {width}x{height}");
